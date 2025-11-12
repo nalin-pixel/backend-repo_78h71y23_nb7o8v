@@ -92,6 +92,74 @@ def create_product(payload: CreateProduct):
     new_id = create_document("merchandiseproduct", model)
     return {"id": new_id}
 
+@app.post("/api/products/seed")
+def seed_products():
+    """Insert a set of sample products if none exist yet. Idempotent: will skip if items found."""
+    existing = db["merchandiseproduct"].count_documents({}) if db else 0
+    if existing > 0:
+        return {"inserted": 0, "message": "Products already exist"}
+
+    allowed_colors = ["green", "black", "yellow", "white"]
+    samples = [
+        {
+            "title": "Classic School Hoodie",
+            "category": "hoodie",
+            "description": "Cozy fleece hoodie with school crest.",
+            "base_price": 45.0,
+            "colors": ["green", "black", "white"],
+            "images": [
+                "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=1200&auto=format&fit=crop"
+            ],
+            "in_stock": True,
+        },
+        {
+            "title": "Beanie - Winter Warmth",
+            "category": "beanie",
+            "description": "Ribbed knit beanie, perfect for game days.",
+            "base_price": 18.0,
+            "colors": ["green", "black", "yellow"],
+            "images": [
+                "https://images.unsplash.com/photo-1516642499105-492ff3ac5211?q=80&w=1200&auto=format&fit=crop"
+            ],
+            "in_stock": True,
+        },
+        {
+            "title": "Premium Cotton Shirt",
+            "category": "shirt",
+            "description": "Soft tee with durable print.",
+            "base_price": 22.0,
+            "colors": allowed_colors,
+            "images": [
+                "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?q=80&w=1200&auto=format&fit=crop"
+            ],
+            "in_stock": True,
+        },
+        {
+            "title": "Athletic Trackpants",
+            "category": "trackpants",
+            "description": "Breathable and comfortable for training.",
+            "base_price": 35.0,
+            "colors": ["black", "green"],
+            "images": [
+                "https://images.unsplash.com/photo-1549068106-b024baf5062d?q=80&w=1200&auto=format&fit=crop"
+            ],
+            "in_stock": True,
+        },
+    ]
+
+    inserted = 0
+    for s in samples:
+        try:
+            # validate via Pydantic schema
+            model = MerchandiseProduct(**s)
+            create_document("merchandiseproduct", model)
+            inserted += 1
+        except Exception:
+            # Skip invalid entries silently
+            pass
+
+    return {"inserted": inserted}
+
 # ---------- Orders with Optional Embroidery ----------
 
 EMBROIDERY_FEE_PER_ITEM = 8.0  # default extra cost per item if embroidery text provided
